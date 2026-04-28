@@ -1,7 +1,7 @@
 #!/bin/bash
 # =========================================
 # SlowDNS Menu Script
-# Based on LamonLind/autodns
+# Based on SantanuDhibar/Sldns
 # =========================================
 
 BIBlack='\033[1;90m'      # Black
