@@ -245,14 +245,14 @@ EOF
 [Unit]
 Description=DNSTT DNS Tunnel Server
 After=network.target
+Wants=network.target
 
 [Service]
 Type=simple
 User=root
 WorkingDirectory=$INSTALL_DIR/dnstt/dnstt-server
 EnvironmentFile=$CONFIG_FILE
-ExecStart=/usr/bin/screen -DmS dnstt $INSTALL_DIR/dnstt/dnstt-server/dnstt-server -udp :5300 -privkey-file $INSTALL_DIR/server.key \${NAMESERVER} 127.0.0.1:\${PORT}
-ExecStop=/usr/bin/screen -S dnstt -X quit
+ExecStart=$INSTALL_DIR/dnstt/dnstt-server/dnstt-server -udp :5300 -privkey-file $INSTALL_DIR/server.key \${NAMESERVER} 127.0.0.1:\${PORT}
 Restart=on-failure
 RestartSec=5
 
@@ -401,6 +401,54 @@ change_port() {
     menu
 }
 
+# Function to rename nameserver
+rename_nameserver() {
+    clear
+    echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "\E[0;41;36m        RENAME NAME SERVER               \E[0m"
+    echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+
+    if ! check_installed; then
+        echo -e "${RED}SlowDNS is not installed${NC}"
+        read -n 1 -s -r -p "Press any key to back on menu"
+        menu
+        return
+    fi
+
+    source "$CONFIG_FILE"
+
+    echo -e ""
+    echo -e " Current Name Server: ${GREEN}$NAMESERVER${NC}"
+    echo -e ""
+    read -p " Enter new Name Server (e.g., ns.example.com): " NEW_NAMESERVER
+
+    if [ -z "$NEW_NAMESERVER" ]; then
+        echo -e "${RED}Error: Nameserver cannot be empty${NC}"
+        read -n 1 -s -r -p "Press any key to back on menu"
+        menu
+        return
+    fi
+
+    # Update config file
+    sed -i "s/NAMESERVER=.*/NAMESERVER=$NEW_NAMESERVER/" "$CONFIG_FILE"
+
+    echo -e "${GREEN}✓ Nameserver changed to $NEW_NAMESERVER${NC}"
+
+    # Restart service to apply new nameserver
+    systemctl daemon-reload
+    systemctl restart dnstt.service
+    sleep 1
+
+    if check_running; then
+        echo -e "${GREEN}✓ DNSTT restarted with new nameserver${NC}"
+    else
+        echo -e "${RED}✗ Failed to restart DNSTT${NC}"
+    fi
+
+    read -n 1 -s -r -p "Press any key to back on menu"
+    menu
+}
+
 # Function to uninstall SlowDNS
 uninstall_slowdns() {
     clear
@@ -438,23 +486,29 @@ uninstall_slowdns() {
     
     echo -e "${YELLOW}[*] Removing configuration...${NC}"
     rm -rf /etc/dnstt
-    
+
+    echo -e "${YELLOW}[*] Removing menu shortcuts...${NC}"
+    rm -f /usr/local/bin/menu-slowdns
+    rm -f /usr/local/bin/menu
+
     echo -e "${GREEN}✓ SlowDNS uninstalled successfully${NC}"
     
     read -n 1 -s -r -p "Press any key to back on menu"
     menu
 }
 
-# Function to self-install as a system-wide 'menu' command
+# Function to self-install as a system-wide command
 install_command() {
-    local target="/usr/local/bin/menu"
+    local target="/usr/local/bin/menu-slowdns"
+    local link="/usr/local/bin/menu"
     local script_path
     script_path="$(readlink -f "${BASH_SOURCE[0]}")"
 
     if [ "$script_path" != "$target" ]; then
         cp "$script_path" "$target"
         chmod +x "$target"
-        echo -e "${GREEN}✓ 'menu' command installed. You can now type 'menu' to open SlowDNS menu.${NC}"
+        ln -sf "$target" "$link"
+        echo -e "${GREEN}✓ Installed as 'menu-slowdns'. Type 'menu-slowdns' or 'menu' to open the SlowDNS menu.${NC}"
     fi
 }
 
@@ -477,7 +531,8 @@ menu() {
     echo -e "     ${BICyan}[${BIWhite}3${BICyan}] Restart SlowDNS      "
     echo -e "     ${BICyan}[${BIWhite}4${BICyan}] Stop SlowDNS     "
     echo -e "     ${BICyan}[${BIWhite}5${BICyan}] Change Port (22/80/443)     "
-    echo -e "     ${BICyan}[${BIWhite}6${BICyan}] Uninstall SlowDNS     "
+    echo -e "     ${BICyan}[${BIWhite}6${BICyan}] Rename Name Server     "
+    echo -e "     ${BICyan}[${BIWhite}7${BICyan}] Uninstall SlowDNS     "
     echo -e " ${BICyan}└─────────────────────────────────────────────────────┘${NC}"
     echo -e "     ${BIYellow}Press x or [ Ctrl+C ] • To-${BIWhite}Exit${NC}"
     echo ""
@@ -489,7 +544,8 @@ menu() {
     3) clear ; restart_slowdns ;;
     4) clear ; stop_slowdns ;;
     5) clear ; change_port ;;
-    6) clear ; uninstall_slowdns ;;
+    6) clear ; rename_nameserver ;;
+    7) clear ; uninstall_slowdns ;;
     x) exit ;;
     *) echo -e "" ; echo "Press any key to back on menu" ; sleep 1 ; menu ;;
     esac
