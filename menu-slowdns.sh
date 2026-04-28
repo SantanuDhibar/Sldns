@@ -92,7 +92,7 @@ show_status() {
         echo -e "Use option [1] to install SlowDNS"
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -113,7 +113,7 @@ show_status() {
     echo -e ""
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     read -n 1 -s -r -p "Press any key to back on menu"
-    menu-slowdns
+    menu
 }
 
 # Function to install SlowDNS
@@ -127,7 +127,7 @@ install_slowdns() {
         echo -e "${YELLOW}SlowDNS is already installed${NC}"
         echo -e ""
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -137,7 +137,7 @@ install_slowdns() {
     if [ -z "$NAMESERVER" ]; then
         echo -e "${RED}Error: Nameserver cannot be empty${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -153,7 +153,7 @@ install_slowdns() {
     if [ $? -ne 0 ]; then
         echo -e "${RED}Error: Failed to download golang${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -182,7 +182,7 @@ install_slowdns() {
         if [ $? -ne 0 ]; then
             echo -e "${RED}Error: Failed to clone dnstt repository${NC}"
             read -n 1 -s -r -p "Press any key to back on menu"
-            menu-slowdns
+            menu
             return
         fi
     fi
@@ -194,7 +194,7 @@ install_slowdns() {
     if [ $? -ne 0 ]; then
         echo -e "${RED}Error: Failed to build dnstt-server${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -284,7 +284,7 @@ SERVICEEOF
     echo -e " ${YELLOW}Port        :${NC} ${GREEN}$PORT${NC}"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     read -n 1 -s -r -p "Press any key to back on menu"
-    menu-slowdns
+    menu
 }
 
 # Function to restart SlowDNS
@@ -297,7 +297,7 @@ restart_slowdns() {
     if ! check_installed; then
         echo -e "${RED}SlowDNS is not installed${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -312,7 +312,7 @@ restart_slowdns() {
     fi
     
     read -n 1 -s -r -p "Press any key to back on menu"
-    menu-slowdns
+    menu
 }
 
 # Function to stop SlowDNS
@@ -325,14 +325,14 @@ stop_slowdns() {
     if ! check_installed; then
         echo -e "${RED}SlowDNS is not installed${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
     if ! check_running; then
         echo -e "${YELLOW}DNSTT is not running${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -340,7 +340,7 @@ stop_slowdns() {
     echo -e "${GREEN}✓ DNSTT stopped${NC}"
     
     read -n 1 -s -r -p "Press any key to back on menu"
-    menu-slowdns
+    menu
 }
 
 # Function to change port
@@ -353,7 +353,7 @@ change_port() {
     if ! check_installed; then
         echo -e "${RED}SlowDNS is not installed${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -376,7 +376,7 @@ change_port() {
         *)
             echo -e "${RED}Invalid choice${NC}"
             read -n 1 -s -r -p "Press any key to back on menu"
-            menu-slowdns
+            menu
             return
             ;;
     esac
@@ -398,7 +398,7 @@ change_port() {
     fi
     
     read -n 1 -s -r -p "Press any key to back on menu"
-    menu-slowdns
+    menu
 }
 
 # Function to uninstall SlowDNS
@@ -411,7 +411,7 @@ uninstall_slowdns() {
     if ! check_installed; then
         echo -e "${RED}SlowDNS is not installed${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -421,7 +421,7 @@ uninstall_slowdns() {
     if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
         echo -e "${YELLOW}Uninstall cancelled${NC}"
         read -n 1 -s -r -p "Press any key to back on menu"
-        menu-slowdns
+        menu
         return
     fi
     
@@ -442,41 +442,59 @@ uninstall_slowdns() {
     echo -e "${GREEN}✓ SlowDNS uninstalled successfully${NC}"
     
     read -n 1 -s -r -p "Press any key to back on menu"
-    menu-slowdns
+    menu
 }
 
-# Main menu
-clear
+# Function to self-install as a system-wide 'menu' command
+install_command() {
+    local target="/usr/local/bin/menu"
+    local script_path
+    script_path="$(readlink -f "${BASH_SOURCE[0]}")"
 
-# Check status for display
-if check_installed && check_running; then
-    SDNS_STATUS="${GREEN}ON${NC}"
-else
-    SDNS_STATUS="${RED}OFF${NC}"
-fi
+    if [ "$script_path" != "$target" ]; then
+        cp "$script_path" "$target"
+        chmod +x "$target"
+        echo -e "${GREEN}✓ 'menu' command installed. You can now type 'menu' to open SlowDNS menu.${NC}"
+    fi
+}
 
-echo -e "${BICyan} ┌─────────────────────────────────────────────────────┐${NC}"
-echo -e "       ${BIWhite}${UWhite}SLOWDNS MENU ${NC}     Status: $SDNS_STATUS"
-echo -e ""
-echo -e "     ${BICyan}[${BIWhite}1${BICyan}] Install SlowDNS      "
-echo -e "     ${BICyan}[${BIWhite}2${BICyan}] SlowDNS Status      "
-echo -e "     ${BICyan}[${BIWhite}3${BICyan}] Restart SlowDNS      "
-echo -e "     ${BICyan}[${BIWhite}4${BICyan}] Stop SlowDNS     "
-echo -e "     ${BICyan}[${BIWhite}5${BICyan}] Change Port (22/80/443)     "
-echo -e "     ${BICyan}[${BIWhite}6${BICyan}] Uninstall SlowDNS     "
-echo -e " ${BICyan}└─────────────────────────────────────────────────────┘${NC}"
-echo -e "     ${BIYellow}Press x or [ Ctrl+C ] • To-${BIWhite}Exit${NC}"
-echo ""
-read -p " Select menu : " opt
-echo -e ""
-case $opt in
-1) clear ; install_slowdns ;;
-2) clear ; show_status ;;
-3) clear ; restart_slowdns ;;
-4) clear ; stop_slowdns ;;
-5) clear ; change_port ;;
-6) clear ; uninstall_slowdns ;;
-0) clear ; menu ;;
-x) exit ;;
-*) echo -e "" ; echo "Press any key to back on menu" ; sleep 1 ; menu ;;
-esac
+# Main menu function
+menu() {
+    clear
+
+    # Check status for display
+    if check_installed && check_running; then
+        SDNS_STATUS="${GREEN}ON${NC}"
+    else
+        SDNS_STATUS="${RED}OFF${NC}"
+    fi
+
+    echo -e "${BICyan} ┌─────────────────────────────────────────────────────┐${NC}"
+    echo -e "       ${BIWhite}${UWhite}SLOWDNS MENU ${NC}     Status: $SDNS_STATUS"
+    echo -e ""
+    echo -e "     ${BICyan}[${BIWhite}1${BICyan}] Install SlowDNS      "
+    echo -e "     ${BICyan}[${BIWhite}2${BICyan}] SlowDNS Status      "
+    echo -e "     ${BICyan}[${BIWhite}3${BICyan}] Restart SlowDNS      "
+    echo -e "     ${BICyan}[${BIWhite}4${BICyan}] Stop SlowDNS     "
+    echo -e "     ${BICyan}[${BIWhite}5${BICyan}] Change Port (22/80/443)     "
+    echo -e "     ${BICyan}[${BIWhite}6${BICyan}] Uninstall SlowDNS     "
+    echo -e " ${BICyan}└─────────────────────────────────────────────────────┘${NC}"
+    echo -e "     ${BIYellow}Press x or [ Ctrl+C ] • To-${BIWhite}Exit${NC}"
+    echo ""
+    read -p " Select menu : " opt
+    echo -e ""
+    case $opt in
+    1) clear ; install_slowdns ;;
+    2) clear ; show_status ;;
+    3) clear ; restart_slowdns ;;
+    4) clear ; stop_slowdns ;;
+    5) clear ; change_port ;;
+    6) clear ; uninstall_slowdns ;;
+    x) exit ;;
+    *) echo -e "" ; echo "Press any key to back on menu" ; sleep 1 ; menu ;;
+    esac
+}
+
+# Install as system-wide command and open the menu
+install_command
+menu
